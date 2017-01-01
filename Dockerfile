@@ -1,26 +1,32 @@
-# DOCKER-VERSION 1.0.0
-FROM    centos:centos6
-MAINTAINER Mike Ebinum, hello@seedtech.io
-# Install dependencies for HHVM
-# yum update -y >/dev/null &&
-RUN yum install -y http://dl.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm  && curl -L -o /etc/yum.repos.d/hop5.repo "http://www.hop5.in/yum/el6/hop5.repo"
-# Install supervisor
-RUN yum install -y python-meld3 http://dl.fedoraproject.org/pub/epel/6/i386/supervisor-2.1-8.el6.noarch.rpm
-#install nginx, php, mysql, hhvm
-RUN ["yum", "-y", "install", "nginx", "php", "php-mysql", "php-devel", "php-gd", "php-pecl-memcache", "php-pspell", "php-snmp", "php-xmlrpc", "php-xml","hhvm"]
-# Create folder for server and add index.php file to for nginx
-RUN mkdir -p /var/www/html && chmod a+r /var/www/html && echo "<?php phpinfo(); ?>" > /var/www/html/index.php
-#Setup hhvm - add config for hhvm
-ADD config.hdf /etc/hhvm/config.hdf
-RUN service hhvm restart
-# ADD Nginx config
-ADD nginx.conf /etc/nginx/conf.d/default.conf
-# ADD supervisord config with hhvm setup
-ADD supervisord.conf /etc/supervisord.conf
-#set to start automatically - supervisord, nginx and mysql
-RUN chkconfig supervisord on && chkconfig nginx on
-ADD scripts/run.sh /run.sh
-RUN chmod a+x /run.sh
-EXPOSE 22 80
-#Start supervisord (which will start hhvm), nginx
-ENTRYPOINT ["/run.sh"]
+## BUILDING
+##   (from project root directory)
+##   $ docker build -t php-for-wongxg-git .
+##
+## RUNNING
+##   $ docker run -p 9000:9000 php-for-wongxg-git
+##
+## CONNECTING
+##   Lookup the IP of your active docker host using:
+##     $ docker-machine ip $(docker-machine active)
+##   Connect to the container at DOCKER_IP:9000
+##     replacing DOCKER_IP for the IP of your active docker host
+
+FROM gcr.io/stacksmith-images/minideb:jessie-r7
+
+MAINTAINER Bitnami <containers@bitnami.com>
+
+ENV STACKSMITH_STACK_ID="a862fjn" \
+    STACKSMITH_STACK_NAME="PHP for wongxg/git" \
+    STACKSMITH_STACK_PRIVATE="1"
+
+RUN bitnami-pkg install php-5.5.38-2 --checksum 8e016a990465b1735561148c9c6addd1a46f8c2d04a5082cf21f1e138e05ee4f
+
+ENV PATH=/opt/bitnami/php/bin:$PATH
+
+## STACKSMITH-END: Modifications below this line will be unchanged when regenerating
+
+# PHP base template
+COPY . /app
+WORKDIR /app
+
+CMD ["php", "-a"]
